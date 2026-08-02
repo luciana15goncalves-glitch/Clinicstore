@@ -1,0 +1,6 @@
+{
+  "name": "ClinicStore",
+  "description": "Sistema de gestão inteligente para clínicas médicas e consultórios com prontuário eletrônico, agenda, controle de estoque e financeiro LGPD.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
