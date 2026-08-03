@@ -89,27 +89,74 @@ export const PrescriptionPdfModal: React.FC<PrescriptionPdfModalProps> = ({
           </div>
 
           {/* Prescriptions List */}
-          <div className="space-y-5 min-h-[220px] py-2">
-            {record.prescricoes.map((p, idx) => (
-              <div key={p.id || idx} className="space-y-1">
-                <div className="flex items-baseline justify-between">
-                  <p className="font-extrabold text-sm text-slate-900">
-                    {idx + 1}. {p.medicamento} {p.dosagem}
+          <div className="space-y-4 py-2">
+            {record.prescricoes.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-xs font-black uppercase text-slate-500 tracking-wider border-b border-slate-200 pb-1">
+                  I. Prescrição de Medicamentos:
+                </p>
+                {record.prescricoes.map((p, idx) => (
+                  <div key={p.id || idx} className="space-y-1">
+                    <div className="flex items-baseline justify-between">
+                      <p className="font-extrabold text-sm text-slate-900">
+                        {idx + 1}. {p.medicamento} {p.dosagem}
+                      </p>
+                      <span className="text-xs font-bold text-slate-600">
+                        Qtd: {p.quantidade} frasco(s)/caixa(s)
+                      </span>
+                    </div>
+                    <p className="text-xs font-medium text-slate-700 pl-4 border-l-2 border-teal-500 italic">
+                      Uso {p.via}: {p.frequencia} por {p.duracao}.
+                    </p>
+                    {p.observacoes && (
+                      <p className="text-[11px] text-slate-500 pl-4 italic">
+                        Obs: {p.observacoes}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Requested Diagnostic Exams Section */}
+            {record.examesSolicitados && record.examesSolicitados.length > 0 && (
+              <div className="space-y-3 pt-3 border-t border-slate-200">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-1">
+                  <p className="text-xs font-black uppercase text-teal-700 tracking-wider">
+                    II. Solicitação de Exames Complementares:
                   </p>
-                  <span className="text-xs font-bold text-slate-600">
-                    Qtd: {p.quantidade} frasco(s)/caixa(s)
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-teal-100 text-teal-800">
+                    Pedido Médico Oficial
                   </span>
                 </div>
-                <p className="text-xs font-medium text-slate-700 pl-4 border-l-2 border-teal-500 italic">
-                  Uso {p.via}: {p.frequencia} por {p.duracao}.
-                </p>
-                {p.observacoes && (
-                  <p className="text-[11px] text-slate-500 pl-4 italic">
-                    Obs: {p.observacoes}
+
+                <div className="space-y-2">
+                  {record.examesSolicitados.map((ex, idx) => (
+                    <div key={ex.id || idx} className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs">
+                      <div className="flex items-center justify-between font-bold text-slate-900">
+                        <span>{idx + 1}. {ex.nomeExame}</span>
+                        {ex.urgente && (
+                          <span className="text-[10px] font-black uppercase text-rose-600 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded">
+                            Urgente
+                          </span>
+                        )}
+                      </div>
+                      {ex.indicacaoClinica && (
+                        <p className="text-[11px] text-slate-600 mt-0.5 italic">
+                          Indicação Clínica: {ex.indicacaoClinica}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {record.orientacoesExames && (
+                  <p className="text-[11px] text-slate-600 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
+                    <strong>Orientações para os Exames:</strong> {record.orientacoesExames}
                   </p>
                 )}
               </div>
-            ))}
+            )}
           </div>
 
           {/* Official Signature & QR Code Simulator */}

@@ -1,6 +1,6 @@
 {
-  "name": "ClinicStore",
-  "description": "Sistema de gestão inteligente para clínicas médicas e consultórios com prontuário eletrônico, agenda, controle de estoque e financeiro LGPD.",
+  "name": "Clinic Medical",
+  "description": "Sistema de gestão médica Clinic Medical com prontuário eletrônico, agenda com calendário mensal, especialidades médicas e financeiro TISS.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

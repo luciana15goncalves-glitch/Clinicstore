@@ -14,8 +14,11 @@ import {
   Video,
   XCircle,
   FileCheck,
+  Stethoscope,
+  Building2,
+  Lock,
 } from 'lucide-react';
-import { Appointment, Patient } from '../types';
+import { Appointment, Patient, UserAccount } from '../types';
 import { ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, BarChart, Bar, XAxis, Tooltip } from 'recharts';
 
 interface DashboardViewProps {
@@ -24,6 +27,7 @@ interface DashboardViewProps {
   onOpenNovaConsulta: () => void;
   onSelectAppointmentForEHR: (apt: Appointment) => void;
   onNavigateTab: (tab: string) => void;
+  currentUser?: UserAccount;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -32,9 +36,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenNovaConsulta,
   onSelectAppointmentForEHR,
   onNavigateTab,
+  currentUser,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [filterDate, setFilterDate] = useState('today');
+
+  const isDoctor = currentUser?.role === 'medico';
 
   // Filter list for table
   const itemsPerPage = 5;
@@ -110,64 +117,128 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <div className="p-6 space-y-6 max-w-[1600px] mx-auto">
-      {/* 1. TOP METRIC CARDS ROW (Exact match to screenshot) */}
+      {/* Role Context Notification Banner */}
+      <div
+        className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-sm ${
+          isDoctor
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+            : 'bg-sky-50 border-sky-200 text-sky-900'
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-bold ${
+              isDoctor
+                ? 'bg-emerald-600 text-white'
+                : 'bg-sky-600 text-white'
+            }`}
+          >
+            {isDoctor ? <Stethoscope className="w-5 h-5" /> : <Building2 className="w-5 h-5" />}
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-black text-sm">
+                {isDoctor ? 'Visão Médica do Sistema' : 'Visão Recepção & Atendimento'}
+              </span>
+              <span
+                className={`font-black text-[10px] px-2 py-0.5 rounded-full ${
+                  isDoctor
+                    ? 'bg-emerald-200 text-emerald-800'
+                    : 'bg-sky-200 text-sky-800'
+                }`}
+              >
+                {currentUser?.cargo || (isDoctor ? 'Médico' : 'Atendente')}
+              </span>
+            </div>
+            <p className="text-slate-600 mt-0.5">
+              {isDoctor
+                ? 'Acesso completo autorizado a Prontuário Eletrônico e Históricos Clínicos. Financeiro e Relatórios são restritos à recepção.'
+                : 'Acesso autorizado a Agendamento de Consultas, Especialidades, Caixa TISS e Relatórios. Prontuários Médicos são restritos a médicos.'}
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => onNavigateTab(isDoctor ? 'prontuario' : 'agenda')}
+          className={`px-3.5 py-2 rounded-xl text-white font-extrabold text-xs shrink-0 transition-all ${
+            isDoctor ? 'bg-emerald-700 hover:bg-emerald-600' : 'bg-sky-700 hover:bg-sky-600'
+          }`}
+        >
+          {isDoctor ? 'Ir para Prontuários' : 'Ir para Agenda'}
+        </button>
+      </div>
+
+      {/* 1. TOP METRIC CARDS ROW */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Card 1: Consultas Hoje */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
+        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-xs font-semibold text-slate-400 tracking-wide uppercase">
               Consultas Hoje
             </p>
-            <h3 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">18</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              <span className="font-medium text-slate-700 dark:text-slate-300">15 realizadas</span> • 3 pendentes
+            <h3 className="text-3xl font-extrabold text-slate-800">18</h3>
+            <p className="text-xs text-slate-500">
+              <span className="font-medium text-slate-700">15 realizadas</span> • 3 pendentes
             </p>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-sky-50 dark:bg-sky-950/50 text-sky-500 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-500 flex items-center justify-center shrink-0">
             <Calendar className="w-6 h-6" />
           </div>
         </div>
 
-        {/* Card 2: Pacientes Novos */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
+        {/* Card 2: Pacientes Atendidos / Novos */}
+        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-xs font-semibold text-slate-400 tracking-wide uppercase">
-              Pacientes Novos
+              {isDoctor ? 'Pacientes Atendidos' : 'Pacientes Novos'}
             </p>
-            <h3 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">4</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Esta semana</p>
+            <h3 className="text-3xl font-extrabold text-slate-800">{isDoctor ? '142' : '4'}</h3>
+            <p className="text-xs text-slate-500">Esta semana na clínica</p>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-500 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center shrink-0">
             <Users className="w-6 h-6" />
           </div>
         </div>
 
-        {/* Card 3: Faturamento Hoje */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
+        {/* Card 3: Faturamento (Atendente) OR Evoluções Clínicas (Médico) */}
+        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-xs font-semibold text-slate-400 tracking-wide uppercase">
-              Faturamento Hoje
+              {isDoctor ? 'Evoluções Médicas' : 'Faturamento Hoje'}
             </p>
-            <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100">R$ 3.200,00</h3>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-              Recebido: R$ 2.100 | Pendente: R$ 1.100
-            </p>
+            {isDoctor ? (
+              <>
+                <h3 className="text-3xl font-black text-slate-800">48 Assinadas</h3>
+                <p className="text-[11px] text-slate-500 truncate">
+                  100% gravado em prontuário eletrônico
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 className="text-2xl font-black text-slate-800">R$ 3.200,00</h3>
+                <p className="text-[11px] text-slate-500 truncate">
+                  Recebido: R$ 2.100 | Pendente: R$ 1.100
+                </p>
+              </>
+            )}
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/50 text-amber-500 flex items-center justify-center shrink-0">
-            <Wallet className="w-6 h-6" />
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center shrink-0">
+            {isDoctor ? <FileCheck className="w-6 h-6" /> : <Wallet className="w-6 h-6" />}
           </div>
         </div>
 
         {/* Card 4: Pendências */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
+        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-xs font-semibold text-slate-400 tracking-wide uppercase">
               Pendências
             </p>
-            <h3 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">2</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Prontuários para finalizar</p>
+            <h3 className="text-3xl font-extrabold text-slate-800">2</h3>
+            <p className="text-xs text-slate-500">
+              {isDoctor ? 'Prontuários para assinar' : 'Confirmações via WhatsApp'}
+            </p>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/50 text-rose-500 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center shrink-0">
             <AlertTriangle className="w-6 h-6" />
           </div>
         </div>
@@ -487,7 +558,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             Conformidade LGPD - Todos os dados estão protegidos e criptografados.
           </span>
         </div>
-        <div>© 2026 ClinicStore Admin. Todos os direitos reservados.</div>
+        <div>© 2026 CLINIC MEDICAL. Todos os direitos reservados.</div>
       </footer>
     </div>
   );

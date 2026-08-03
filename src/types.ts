@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'medico' | 'secretaria';
+export type Role = 'medico' | 'atendente' | 'admin';
 
 export interface UserProfile {
   id: number;
@@ -7,7 +7,38 @@ export interface UserProfile {
   crm?: string;
   especialidade?: string;
   role: Role;
+  cargo: string;
   avatar: string;
+  turno?: string;
+}
+
+export interface UserAccount {
+  id: number;
+  nome: string;
+  email: string;
+  senha?: string;
+  role: Role;
+  cargo: string;
+  crm?: string;
+  especialidade?: string;
+  avatar: string;
+  turno?: string;
+}
+
+export interface DoctorSpecialty {
+  id: number;
+  nome: string;
+  crm: string;
+  especialidade: string;
+  diasAtendimento: string[];
+  horarioAtendimento: string;
+  consultorio: string;
+  avatar: string;
+  valorConsulta: number;
+  atendeConvenio: boolean;
+  conveniosAtendidos?: string[];
+  descricao?: string;
+  status: 'disponivel' | 'em_atendimento' | 'ausente';
 }
 
 export type AppointmentStatus = 'agendada' | 'confirmada' | 'pendente' | 'em_atendimento' | 'concluida' | 'cancelada' | 'atrasado';
@@ -67,6 +98,8 @@ export interface Appointment {
   formaPagamento: PaymentType;
   convenioNome?: string;
   observacoes?: string;
+  isEncaixe?: boolean;
+  motivoDesistencia?: string;
 }
 
 export interface CID10Item {
@@ -86,6 +119,14 @@ export interface PrescriptionItem {
   observacoes?: string;
 }
 
+export interface ExamRequestItem {
+  id: string;
+  nomeExame: string;
+  categoria?: string; // Imagem, Laboratorial, Cardiologia, etc.
+  indicacaoClinica?: string;
+  urgente?: boolean;
+}
+
 export interface MedicalRecord {
   id: number;
   consultaId: number;
@@ -99,6 +140,9 @@ export interface MedicalRecord {
   cid10Codigo?: string;
   cid10Descricao?: string;
   prescricoes: PrescriptionItem[];
+  solicitaExames?: boolean;
+  examesSolicitados?: ExamRequestItem[];
+  orientacoesExames?: string;
   assinado: boolean;
   assinadoEm?: string;
 }
