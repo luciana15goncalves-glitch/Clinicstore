@@ -128,8 +128,25 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
     calendarCells.push({ day, dateStr });
   }
 
+  const isDoctor = currentUser?.role === 'medico';
+
   // Filter appointments
   const filteredAppointments = appointments.filter((apt) => {
+    // If logged in as doctor, enforce filtering exclusively for this doctor
+    if (isDoctor && currentUser) {
+      const docNameClean = currentUser.nome.toLowerCase().replace('dr.', '').replace('dra.', '').trim();
+      const aptDocClean = apt.medicoNome.toLowerCase();
+      const docFirstName = docNameClean.split(' ')[0];
+      const docLastName = docNameClean.split(' ').slice(-1)[0];
+
+      const isMyApt =
+        apt.medicoId === currentUser.id ||
+        aptDocClean.includes(docLastName) ||
+        (docFirstName && docFirstName.length > 2 && aptDocClean.includes(docFirstName));
+
+      if (!isMyApt) return false;
+    }
+
     const matchesStatus = selectedStatus === 'all' || apt.status === selectedStatus;
     const matchesSearch =
       apt.pacienteNome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -139,6 +156,33 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
       selectedDoctorFilter === 'todos' || apt.medicoNome.toLowerCase().includes(selectedDoctorFilter.toLowerCase());
     return matchesStatus && matchesSearch && matchesDoctor;
   });
+
+  // Doctor Agenda Statistics
+  const docAppointmentsAll = appointments.filter((apt) => {
+    if (!isDoctor || !currentUser) return true;
+    const docNameClean = currentUser.nome.toLowerCase().replace('dr.', '').replace('dra.', '').trim();
+    const aptDocClean = apt.medicoNome.toLowerCase();
+    const docFirstName = docNameClean.split(' ')[0];
+    const docLastName = docNameClean.split(' ').slice(-1)[0];
+    return (
+      apt.medicoId === currentUser.id ||
+      aptDocClean.includes(docLastName) ||
+      (docFirstName && docFirstName.length > 2 && aptDocClean.includes(docFirstName))
+    );
+  });
+
+  const docMonthCount = docAppointmentsAll.length;
+  const docWeekCount = docAppointmentsAll.filter(
+    (a) =>
+      a.dataHora.startsWith('2026-08-01') ||
+      a.dataHora.startsWith('2026-08-02') ||
+      a.dataHora.startsWith('2026-08-03') ||
+      a.dataHora.startsWith('2026-08-04') ||
+      a.dataHora.startsWith('2026-08-05') ||
+      a.dataHora.startsWith('2026-08-06') ||
+      a.dataHora.startsWith('2026-08-07')
+  ).length;
+  const docTodayCount = docAppointmentsAll.filter((a) => a.dataHora.startsWith('2026-08-03')).length;
 
   // Get appointments for a specific date string
   const getAppointmentsForDate = (dateStr: string) => {
@@ -256,6 +300,41 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
         </div>
       )}
 
+      {/* DOCTOR SPECIFIC AGENDA BANNER */}
+      {isDoctor && (
+        <div className="bg-gradient-to-r from-emerald-900 via-slate-900 to-teal-950 text-white p-5 rounded-3xl border border-emerald-500/30 shadow-lg flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 animate-fade-in">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30 shadow-sm">
+              <Stethoscope className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-lg font-black text-white">
+                  Agenda Específica do Médico — {currentUser?.nome}
+                </h3>
+                <span className="bg-emerald-500/20 text-emerald-300 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                  {currentUser?.crm || currentUser?.especialidade || 'Médico'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Visão restrita de consultas agendadas e histórico sob sua responsabilidade clínica.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
+            <span className="text-xs font-bold text-emerald-300 bg-emerald-950/80 px-3.5 py-2 rounded-xl border border-emerald-700/50 shadow-sm">
+              📅 <strong>{docMonthCount}</strong> no Mês
+            </span>
+            <span className="text-xs font-bold text-teal-300 bg-teal-950/80 px-3.5 py-2 rounded-xl border border-teal-700/50 shadow-sm">
+              🗓️ <strong>{docWeekCount}</strong> na Semana
+            </span>
+            <span className="text-xs font-bold text-amber-300 bg-amber-950/80 px-3.5 py-2 rounded-xl border border-amber-700/50 shadow-sm">
+              ⏰ <strong>{docTodayCount}</strong> Hoje
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* RECEPTION PATIENT EVIDENCE BANNER (Modo Atendente de Recepção) */}
       {receptionSelectedPatient && (
         <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-teal-950 text-white rounded-3xl p-6 border-2 border-[#00A896] shadow-2xl ring-4 ring-teal-500/20 relative overflow-hidden transition-all">
@@ -362,14 +441,16 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                     </span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => handleOpenEncaixeForPatient(receptionSelectedPatient)}
-                    className="px-4 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold shadow-md flex items-center gap-1.5 transition-all active:scale-95"
-                  >
-                    <Zap className="w-4 h-4 fill-current" />
-                    <span>⚡ Novo Encaixe</span>
-                  </button>
+                  {!isDoctor && (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEncaixeForPatient(receptionSelectedPatient)}
+                      className="px-4 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold shadow-md flex items-center gap-1.5 transition-all active:scale-95"
+                    >
+                      <Zap className="w-4 h-4 fill-current" />
+                      <span>⚡ Novo Encaixe</span>
+                    </button>
+                  )}
 
                   <button
                     type="button"
@@ -382,7 +463,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                     <span>Registrar Desistência</span>
                   </button>
                 </>
-              ) : (
+              ) : !isDoctor ? (
                 <button
                   type="button"
                   onClick={() => handleOpenEncaixeForPatient(receptionSelectedPatient)}
@@ -391,7 +472,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                   <Zap className="w-5 h-5 fill-current" />
                   <span>AGENDAR ENCAIXE DE EMERGÊNCIA AGORA</span>
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
@@ -438,24 +519,27 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
             </button>
           </div>
 
-          {/* Encaixe Button */}
-          <button
-            onClick={() => handleOpenEncaixeForPatient(receptionSelectedPatient || null)}
-            className="bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-extrabold px-4 py-2.5 rounded-2xl flex items-center gap-1.5 shadow-md transition-all active:scale-95"
-            title="Inserir agendamento emergencial extra na agenda"
-          >
-            <Zap className="w-4 h-4 fill-current" />
-            <span>⚡ Novo Encaixe</span>
-          </button>
+          {/* Encaixe & Regular Appointment Buttons (Hidden for Doctor role) */}
+          {!isDoctor && (
+            <>
+              <button
+                onClick={() => handleOpenEncaixeForPatient(receptionSelectedPatient || null)}
+                className="bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-extrabold px-4 py-2.5 rounded-2xl flex items-center gap-1.5 shadow-md transition-all active:scale-95"
+                title="Inserir agendamento emergencial extra na agenda"
+              >
+                <Zap className="w-4 h-4 fill-current" />
+                <span>⚡ Novo Encaixe</span>
+              </button>
 
-          {/* Regular Appointment Button */}
-          <button
-            onClick={onOpenNovaConsulta}
-            className="bg-[#00A896] hover:bg-[#009282] text-white text-xs font-bold px-4 py-2.5 rounded-2xl flex items-center gap-1.5 shadow-md transition-all active:scale-95"
-          >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>Agendar Consulta</span>
-          </button>
+              <button
+                onClick={onOpenNovaConsulta}
+                className="bg-[#00A896] hover:bg-[#009282] text-white text-xs font-bold px-4 py-2.5 rounded-2xl flex items-center gap-1.5 shadow-md transition-all active:scale-95"
+              >
+                <Plus className="w-4 h-4 stroke-[2.5]" />
+                <span>Agendar Consulta</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -474,24 +558,31 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
         </div>
 
         {/* Doctor Filter Dropdown */}
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="flex items-center gap-1 text-xs font-bold text-slate-500">
+        {isDoctor ? (
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-teal-50 border border-teal-200 text-teal-800 text-xs font-extrabold shadow-sm">
             <Stethoscope className="w-4 h-4 text-[#00A896]" />
-            <span>Médico:</span>
+            <span>Agenda Pessoal do Médico: {currentUser?.nome}</span>
           </div>
-          <select
-            value={selectedDoctorFilter}
-            onChange={(e) => setSelectedDoctorFilter(e.target.value)}
-            className="bg-slate-50 text-slate-800 text-xs font-semibold px-3 py-2 rounded-xl border border-slate-200 focus:outline-none cursor-pointer"
-          >
-            <option value="todos">Todos os Médicos</option>
-            {DOCTORS_SPECIALTIES.map((d) => (
-              <option key={d.id} value={d.nome}>
-                {d.nome} ({d.especialidade})
-              </option>
-            ))}
-          </select>
-        </div>
+        ) : (
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="flex items-center gap-1 text-xs font-bold text-slate-500">
+              <Stethoscope className="w-4 h-4 text-[#00A896]" />
+              <span>Médico:</span>
+            </div>
+            <select
+              value={selectedDoctorFilter}
+              onChange={(e) => setSelectedDoctorFilter(e.target.value)}
+              className="bg-slate-50 text-slate-800 text-xs font-semibold px-3 py-2 rounded-xl border border-slate-200 focus:outline-none cursor-pointer"
+            >
+              <option value="todos">Todos os Médicos</option>
+              {DOCTORS_SPECIALTIES.map((d) => (
+                <option key={d.id} value={d.nome}>
+                  {d.nome} ({d.especialidade})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Status Filter */}
         <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
@@ -603,9 +694,13 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                         {cell.day}
                       </span>
 
-                      {dayApts.length > 0 && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-teal-100 text-[#00A896]">
-                          {dayApts.length}
+                      {dayApts.length > 0 ? (
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-teal-600 text-white shadow-xs">
+                          {dayApts.length} {dayApts.length === 1 ? 'cons.' : 'cons.'}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-semibold text-slate-300">
+                          0
                         </span>
                       )}
                     </div>
@@ -634,11 +729,6 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                           +{dayApts.length - 2} mais
                         </span>
                       )}
-                      {dayApts.length === 0 && availableDocs.length > 0 && (
-                        <span className="text-[9px] text-[#00A896] font-semibold block truncate">
-                          {availableDocs.length} médicos disp.
-                        </span>
-                      )}
                     </div>
                   </div>
                 );
@@ -657,43 +747,64 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
               </h3>
             </div>
 
-            {/* Doctors Available on this Date */}
-            <div className="space-y-3">
-              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                <Stethoscope className="w-4 h-4 text-[#00A896]" />
-                <span>Médicos Disponíveis na Data ({selectedDateAvailableDoctors.length})</span>
-              </h4>
+            {/* Doctors Available on this Date (Hidden for Doctor role, replaced by Doctor Stats) */}
+            {!isDoctor ? (
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <Stethoscope className="w-4 h-4 text-[#00A896]" />
+                  <span>Médicos Disponíveis na Data ({selectedDateAvailableDoctors.length})</span>
+                </h4>
 
-              {selectedDateAvailableDoctors.length > 0 ? (
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {selectedDateAvailableDoctors.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between text-xs"
-                    >
-                      <div>
-                        <p className="font-bold text-slate-800">{doc.nome}</p>
-                        <p className="text-[11px] text-[#00A896] font-semibold">{doc.especialidade}</p>
-                        <p className="text-[10px] text-slate-400">{doc.horarioAtendimento}</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEncaixeDoctorId(doc.id);
-                          setIsEncaixeModalOpen(true);
-                        }}
-                        className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-1 rounded-lg hover:bg-amber-200 transition-colors flex items-center gap-1"
+                {selectedDateAvailableDoctors.length > 0 ? (
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {selectedDateAvailableDoctors.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between text-xs"
                       >
-                        <Zap className="w-3 h-3 text-amber-600" />
-                        <span>Encaixe</span>
-                      </button>
-                    </div>
-                  ))}
+                        <div>
+                          <p className="font-bold text-slate-800">{doc.nome}</p>
+                          <p className="text-[11px] text-[#00A896] font-semibold">{doc.especialidade}</p>
+                          <p className="text-[10px] text-slate-400">{doc.horarioAtendimento}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEncaixeDoctorId(doc.id);
+                            setIsEncaixeModalOpen(true);
+                          }}
+                          className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-1 rounded-lg hover:bg-amber-200 transition-colors flex items-center gap-1"
+                        >
+                          <Zap className="w-3 h-3 text-amber-600" />
+                          <span>Encaixe</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400 italic">Sem escala de médicos cadastrada para este dia.</p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <Stethoscope className="w-4 h-4 text-[#00A896]" />
+                  <span>Resumo da Sua Agenda</span>
+                </h4>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-3 bg-teal-50 rounded-2xl border border-teal-100 text-teal-900">
+                    <span className="text-[10px] font-bold text-teal-600 uppercase block">No Mês</span>
+                    <span className="text-xl font-black">{docMonthCount}</span>
+                    <span className="text-[10px] text-teal-700 block mt-0.5">agendamentos</span>
+                  </div>
+                  <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 text-emerald-900">
+                    <span className="text-[10px] font-bold text-emerald-600 uppercase block">Na Semana</span>
+                    <span className="text-xl font-black">{docWeekCount}</span>
+                    <span className="text-[10px] text-emerald-700 block mt-0.5">agendamentos</span>
+                  </div>
                 </div>
-              ) : (
-                <p className="text-xs text-slate-400 italic">Sem escala de médicos cadastrada para este dia.</p>
-              )}
-            </div>
+              </div>
+            )}
 
             <hr className="border-slate-100" />
 
@@ -703,22 +814,24 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                 <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                   Agendamentos ({selectedDateAppointments.length})
                 </h4>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleOpenEncaixeForPatient(null)}
-                    className="text-xs font-bold text-amber-600 hover:underline flex items-center gap-1"
-                  >
-                    <Zap className="w-3.5 h-3.5 fill-current" />
-                    <span>Encaixe</span>
-                  </button>
-                  <button
-                    onClick={onOpenNovaConsulta}
-                    className="text-xs font-bold text-[#00A896] hover:underline flex items-center gap-1"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Novo</span>
-                  </button>
-                </div>
+                {!isDoctor && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleOpenEncaixeForPatient(null)}
+                      className="text-xs font-bold text-amber-600 hover:underline flex items-center gap-1"
+                    >
+                      <Zap className="w-3.5 h-3.5 fill-current" />
+                      <span>Encaixe</span>
+                    </button>
+                    <button
+                      onClick={onOpenNovaConsulta}
+                      className="text-xs font-bold text-[#00A896] hover:underline flex items-center gap-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Novo</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               {selectedDateAppointments.length > 0 ? (
@@ -806,12 +919,14 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
               ) : (
                 <div className="p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
                   <p className="text-xs font-medium text-slate-500">Nenhum agendamento para esta data.</p>
-                  <button
-                    onClick={onOpenNovaConsulta}
-                    className="mt-2 text-xs font-bold text-[#00A896] underline"
-                  >
-                    Agendar agora
-                  </button>
+                  {!isDoctor && (
+                    <button
+                      onClick={onOpenNovaConsulta}
+                      className="mt-2 text-xs font-bold text-[#00A896] underline"
+                    >
+                      Agendar agora
+                    </button>
+                  )}
                 </div>
               )}
             </div>

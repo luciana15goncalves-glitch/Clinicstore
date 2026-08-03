@@ -206,17 +206,19 @@ export const ConfiguracoesView: React.FC<ConfiguracoesViewProps> = ({
 
         {/* Tab Selector */}
         <div className="bg-slate-100 p-1 rounded-2xl flex flex-wrap items-center gap-1">
-          <button
-            onClick={() => setActiveTab('personalizacao')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-              activeTab === 'personalizacao'
-                ? 'bg-white text-[#00A896] shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Palette className="w-3.5 h-3.5" />
-            <span>Personalização (Logo & Cores)</span>
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setActiveTab('personalizacao')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                activeTab === 'personalizacao'
+                  ? 'bg-white text-[#00A896] shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Palette className="w-3.5 h-3.5" />
+              <span>Personalização (Logo & Cores)</span>
+            </button>
+          )}
 
           <button
             onClick={() => setActiveTab('gestao_medicos')}
@@ -277,8 +279,8 @@ export const ConfiguracoesView: React.FC<ConfiguracoesViewProps> = ({
         </div>
       </div>
 
-      {/* TAB 1: Personalização do Sistema (Logo & Cores Degradê) */}
-      {activeTab === 'personalizacao' && (
+      {/* TAB 1: Personalização do Sistema (Logo & Cores Degradê) - EXCLUSIVO ADMINISTRADOR */}
+      {activeTab === 'personalizacao' && isAdmin && (
         <form onSubmit={handleSavePersonalizacao} className="space-y-6">
           {saveSuccessMsg && (
             <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2.5 animate-fade-in shadow-sm">

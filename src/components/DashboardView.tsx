@@ -42,14 +42,36 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [filterDate, setFilterDate] = useState('today');
 
   const isDoctor = currentUser?.role === 'medico';
+  const isAdmin = currentUser?.role === 'admin';
+
+  // Filter appointments specifically for doctor when logged in as medico
+  const filteredDocAppointments = isDoctor && currentUser
+    ? appointments.filter((apt) => {
+        const docNameClean = currentUser.nome.toLowerCase().replace('dr.', '').replace('dra.', '').trim();
+        const aptDocClean = apt.medicoNome.toLowerCase();
+        const docFirstName = docNameClean.split(' ')[0];
+        const docLastName = docNameClean.split(' ').slice(-1)[0];
+        return (
+          apt.medicoId === currentUser.id ||
+          aptDocClean.includes(docLastName) ||
+          (docFirstName && docFirstName.length > 2 && aptDocClean.includes(docFirstName))
+        );
+      })
+    : appointments;
 
   // Filter list for table
   const itemsPerPage = 5;
-  const upcomingAppointments = appointments.slice(
+  const upcomingAppointments = filteredDocAppointments.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
-  const totalPages = Math.ceil(appointments.length / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredDocAppointments.length / itemsPerPage));
+
+  // Dynamic statistics for top cards
+  const consultasHoje = filteredDocAppointments.filter((a) => a.dataHora.startsWith('2026-08-03'));
+  const realizadasHoje = consultasHoje.filter((a) => a.status === 'concluida' || a.status === 'confirmada').length;
+  const pendentesHoje = consultasHoje.filter((a) => a.status === 'agendada' || a.status === 'pendente').length;
+  const canceladasHoje = consultasHoje.filter((a) => a.status === 'cancelada').length;
 
   // Ocupação donut chart data
   const ocupacaoData = [
@@ -152,8 +174,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <p className="text-slate-600 mt-0.5">
               {isDoctor
-                ? 'Acesso completo autorizado a Prontuário Eletrônico e Históricos Clínicos. Financeiro e Relatórios são restritos à recepção.'
-                : 'Acesso autorizado a Agendamento de Consultas, Especialidades, Caixa TISS e Relatórios. Prontuários Médicos são restritos a médicos.'}
+                ? 'Acesso completo autorizado a Prontuário Eletrônico e Históricos Clínicos.'
+                : isAdmin
+                ? 'Acesso administrativo completo: Faturamento TISS, Relatórios, Configurações e Equipe.'
+                : 'Acesso autorizado a Agendamento de Consultas, Especialidades e Recepção de Pacientes.'}
             </p>
           </div>
         </div>
@@ -174,11 +198,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-xs font-semibold text-slate-400 tracking-wide uppercase">
-              Consultas Hoje
+              {isDoctor ? 'Minhas Consultas Hoje' : 'Consultas Hoje'}
             </p>
-            <h3 className="text-3xl font-extrabold text-slate-800">18</h3>
+            <h3 className="text-3xl font-extrabold text-slate-800">
+              {isDoctor ? consultasHoje.length : 18}
+            </h3>
             <p className="text-xs text-slate-500">
-              <span className="font-medium text-slate-700">15 realizadas</span> • 3 pendentes
+              <span className="font-medium text-slate-700">
+                {isDoctor ? `${realizadasHoje} confirmadas/concluídas` : '15 realizadas'}
+              </span>
+              {' • '}
+              {isDoctor ? `${pendentesHoje} pendentes` : '3 pendentes'}
             </p>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-500 flex items-center justify-center shrink-0">
@@ -190,40 +220,59 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-xs font-semibold text-slate-400 tracking-wide uppercase">
-              {isDoctor ? 'Pacientes Atendidos' : 'Pacientes Novos'}
+              {isDoctor ? 'Meus Pacientes no Mês' : 'Pacientes Novos'}
             </p>
-            <h3 className="text-3xl font-extrabold text-slate-800">{isDoctor ? '142' : '4'}</h3>
-            <p className="text-xs text-slate-500">Esta semana na clínica</p>
+            <h3 className="text-3xl font-extrabold text-slate-800">
+              {isDoctor ? filteredDocAppointments.length : '4'}
+            </h3>
+            <p className="text-xs text-slate-500">
+              {isDoctor ? 'Agendamentos sob seus cuidados' : 'Esta semana na clínica'}
+            </p>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center shrink-0">
             <Users className="w-6 h-6" />
           </div>
         </div>
 
-        {/* Card 3: Faturamento (Atendente) OR Evoluções Clínicas (Médico) */}
+        {/* Card 3: Faturamento (Admin) / Evoluções Clínicas (Médico) / Consultas Confirmadas (Atendente) */}
         <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-xs font-semibold text-slate-400 tracking-wide uppercase">
-              {isDoctor ? 'Evoluções Médicas' : 'Faturamento Hoje'}
+              {isAdmin ? 'Faturamento Hoje' : isDoctor ? 'Evoluções Médicas' : 'Consultas Confirmadas'}
             </p>
-            {isDoctor ? (
-              <>
-                <h3 className="text-3xl font-black text-slate-800">48 Assinadas</h3>
-                <p className="text-[11px] text-slate-500 truncate">
-                  100% gravado em prontuário eletrônico
-                </p>
-              </>
-            ) : (
+            {isAdmin ? (
               <>
                 <h3 className="text-2xl font-black text-slate-800">R$ 3.200,00</h3>
                 <p className="text-[11px] text-slate-500 truncate">
                   Recebido: R$ 2.100 | Pendente: R$ 1.100
                 </p>
               </>
+            ) : isDoctor ? (
+              <>
+                <h3 className="text-3xl font-black text-slate-800">
+                  {filteredDocAppointments.length} Gravadas
+                </h3>
+                <p className="text-[11px] text-slate-500 truncate">
+                  100% integradas ao prontuário eletrônico
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 className="text-3xl font-black text-slate-800">17 de 18</h3>
+                <p className="text-[11px] text-emerald-600 font-semibold truncate">
+                  94% de presença confirmada hoje
+                </p>
+              </>
             )}
           </div>
           <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center shrink-0">
-            {isDoctor ? <FileCheck className="w-6 h-6" /> : <Wallet className="w-6 h-6" />}
+            {isAdmin ? (
+              <Wallet className="w-6 h-6" />
+            ) : isDoctor ? (
+              <FileCheck className="w-6 h-6" />
+            ) : (
+              <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+            )}
           </div>
         </div>
 
@@ -233,9 +282,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <p className="text-xs font-semibold text-slate-400 tracking-wide uppercase">
               Pendências
             </p>
-            <h3 className="text-3xl font-extrabold text-slate-800">2</h3>
+            <h3 className="text-3xl font-extrabold text-slate-800">
+              {isDoctor ? pendentesHoje : 2}
+            </h3>
             <p className="text-xs text-slate-500">
-              {isDoctor ? 'Prontuários para assinar' : 'Confirmações via WhatsApp'}
+              {isDoctor ? 'Atendimentos aguardando retorno' : 'Confirmações via WhatsApp'}
             </p>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center shrink-0">
@@ -253,20 +304,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
               <div>
                 <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">
-                  Próximas Consultas
+                  {isDoctor ? 'Minha Agenda de Atendimentos' : 'Próximas Consultas'}
                 </h2>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Gerenciamento de atendimentos do dia
+                  {isDoctor
+                    ? `Pacientes agendados para o Dr(a). ${currentUser?.nome}`
+                    : 'Gerenciamento de atendimentos do dia'}
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={onOpenNovaConsulta}
-                  className="bg-[#00A896] hover:bg-[#009282] text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
-                >
-                  <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                  <span>Nova Consulta</span>
-                </button>
+                {!isDoctor && (
+                  <button
+                    onClick={onOpenNovaConsulta}
+                    className="bg-[#00A896] hover:bg-[#009282] text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
+                  >
+                    <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                    <span>Nova Consulta</span>
+                  </button>
+                )}
                 <div className="relative">
                   <select
                     value={filterDate}
@@ -461,93 +516,163 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* 3. BOTTOM ROW WIDGETS (Conversão, Fluxo de Caixa, Metas) */}
+      {/* 3. BOTTOM ROW WIDGETS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Widget 1: Conversão */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-amber-600 bg-amber-50 dark:bg-amber-950/50 px-2.5 py-1 rounded-lg flex items-center gap-1">
-              ⚡ Conversão
-            </span>
-            <button
-              onClick={() => onNavigateTab('relatorios')}
-              className="text-xs font-semibold text-sky-600 dark:text-sky-400 hover:underline"
-            >
-              Ver
-            </button>
-          </div>
-          <div className="my-3 flex items-baseline justify-between">
-            <div>
-              <span className="text-3xl font-black text-slate-800 dark:text-slate-100">68%</span>
-              <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5 mt-0.5">
-                ↑ 5.2% vs mês anterior
-              </p>
+        {isAdmin ? (
+          <>
+            {/* Widget 1: Conversão */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-amber-600 bg-amber-50 dark:bg-amber-950/50 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                  ⚡ Conversão
+                </span>
+                <button
+                  onClick={() => onNavigateTab('relatorios')}
+                  className="text-xs font-semibold text-sky-600 dark:text-sky-400 hover:underline"
+                >
+                  Ver
+                </button>
+              </div>
+              <div className="my-3 flex items-baseline justify-between">
+                <div>
+                  <span className="text-3xl font-black text-slate-800 dark:text-slate-100">68%</span>
+                  <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5 mt-0.5">
+                    ↑ 5.2% vs mês anterior
+                  </p>
+                </div>
+              </div>
+              <div className="h-10">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={sparklineData}>
+                    <Area
+                      type="monotone"
+                      dataKey="v"
+                      stroke="#F59E0B"
+                      fill="#FEF3C7"
+                      strokeWidth={2}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-          </div>
-          <div className="h-10">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={sparklineData}>
-                <Area
-                  type="monotone"
-                  dataKey="v"
-                  stroke="#F59E0B"
-                  fill="#FEF3C7"
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
 
-        {/* Widget 2: Fluxo de Caixa */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between">
+            {/* Widget 2: Fluxo de Caixa */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                      Fluxo de Caixa
+                    </h4>
+                    <p className="text-[11px] text-slate-400">Entradas vs Saídas do mês</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] text-slate-400 uppercase font-bold">SAÍDA</div>
+                    <div className="text-xs font-extrabold text-slate-800 dark:text-slate-100">
+                      R$ 12.450
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] text-slate-400 uppercase font-bold">ENTRADA</div>
+                    <div className="text-xs font-extrabold text-sky-600 dark:text-sky-400">
+                      R$ 48.356
+                    </div>
+                  </div>
+                </div>
+                <div className="h-16 mt-2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={fluxodeCaixaData}>
+                      <Bar dataKey="saida" fill="#E2E8F0" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="entrada" fill="#00B4D8" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+
+            {/* Widget 3: Metas de Receita */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
+              <div className="space-y-1">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Metas de Receita
+                </span>
+                <h4 className="text-2xl font-black text-slate-800 dark:text-slate-100">
+                  R$ 42.500
+                </h4>
+                <p className="text-xs text-emerald-600 font-semibold">Meta de Agosto: 82% atingida</p>
+              </div>
+              <div className="w-16 h-16 rounded-full border-4 border-teal-500 border-t-slate-200 flex items-center justify-center text-sm font-black text-[#00A896] shrink-0">
+                75%
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Non-financial Widget 1: Taxa de Assiduidade */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[#00A896] bg-teal-50 dark:bg-teal-950/50 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Presença Hoje
+                </span>
+                <button
+                  onClick={() => onNavigateTab('agenda')}
+                  className="text-xs font-semibold text-teal-600 hover:underline"
+                >
+                  Ver Agenda
+                </button>
+              </div>
+              <div className="my-2">
+                <span className="text-3xl font-black text-slate-800 dark:text-slate-100">94%</span>
+                <p className="text-xs font-semibold text-emerald-600 flex items-center gap-0.5 mt-0.5">
+                  17 de 18 pacientes confirmados
+                </p>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                <div className="bg-[#00A896] h-full rounded-full" style={{ width: '94%' }} />
+              </div>
+            </div>
+
+            {/* Non-financial Widget 2: Status dos Agendamentos */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
               <div>
                 <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                  Fluxo de Caixa
+                  Status das Consultas
                 </h4>
-                <p className="text-[11px] text-slate-400">Entradas vs Saídas do mês</p>
+                <p className="text-[11px] text-slate-400">Progresso dos atendimentos hoje</p>
               </div>
-              <div className="text-right">
-                <div className="text-[10px] text-slate-400 uppercase font-bold">SAÍDA</div>
-                <div className="text-xs font-extrabold text-slate-800 dark:text-slate-100">
-                  R$ 12.450
+              <div className="grid grid-cols-3 gap-1 my-2 text-center">
+                <div className="p-2 rounded-xl bg-slate-50">
+                  <span className="block text-[10px] text-slate-400 font-bold">REALIZADAS</span>
+                  <span className="text-lg font-black text-emerald-600">15</span>
                 </div>
-              </div>
-              <div className="text-right">
-                <div className="text-[10px] text-slate-400 uppercase font-bold">ENTRADA</div>
-                <div className="text-xs font-extrabold text-sky-600 dark:text-sky-400">
-                  R$ 48.356
+                <div className="p-2 rounded-xl bg-slate-50">
+                  <span className="block text-[10px] text-slate-400 font-bold">PENDENTES</span>
+                  <span className="text-lg font-black text-amber-500">3</span>
+                </div>
+                <div className="p-2 rounded-xl bg-slate-50">
+                  <span className="block text-[10px] text-slate-400 font-bold">CANCELADAS</span>
+                  <span className="text-lg font-black text-rose-500">1</span>
                 </div>
               </div>
             </div>
-            <div className="h-16 mt-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={fluxodeCaixaData}>
-                  <Bar dataKey="saida" fill="#E2E8F0" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="entrada" fill="#00B4D8" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
 
-        {/* Widget 3: Metas de Receita */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Metas de Receita
-            </span>
-            <h4 className="text-2xl font-black text-slate-800 dark:text-slate-100">
-              R$ 42.500
-            </h4>
-            <p className="text-xs text-emerald-600 font-semibold">Meta de Agosto: 82% atingida</p>
-          </div>
-          <div className="w-16 h-16 rounded-full border-4 border-teal-500 border-t-slate-200 flex items-center justify-center text-sm font-black text-[#00A896] shrink-0">
-            75%
-          </div>
-        </div>
+            {/* Non-financial Widget 3: Pontualidade do Atendimento */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
+              <div className="space-y-1">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Pontualidade Médica
+                </span>
+                <h4 className="text-2xl font-black text-slate-800 dark:text-slate-100">
+                  98%
+                </h4>
+                <p className="text-xs text-teal-600 font-semibold">Consultas iniciadas no horário</p>
+              </div>
+              <div className="w-16 h-16 rounded-2xl bg-teal-50 text-[#00A896] flex items-center justify-center text-xl font-black shrink-0">
+                <Clock className="w-8 h-8" />
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* 4. FOOTER: CONFORMIDADE LGPD */}

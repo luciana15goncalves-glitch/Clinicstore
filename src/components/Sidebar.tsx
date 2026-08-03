@@ -55,7 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const allMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['medico', 'atendente', 'admin'] },
     { id: 'agenda', label: 'Agenda & Calendário', icon: Calendar, roles: ['medico', 'atendente', 'admin'] },
-    { id: 'especialidades', label: 'Especialidades & Corpo Clínico', icon: Stethoscope, roles: ['medico', 'atendente', 'admin'] },
+    { id: 'especialidades', label: 'Especialidades & Corpo Clínico', icon: Stethoscope, roles: ['atendente', 'admin'] },
     { id: 'pacientes', label: 'Pacientes', icon: Users, roles: ['medico', 'admin'] },
     { id: 'prontuario', label: 'Prontuário', icon: FileText, roles: ['medico', 'admin'] },
     { id: 'financeiro', label: 'Financeiro TISS (Admin)', icon: Wallet, roles: ['admin'] },
@@ -196,19 +196,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         )}
 
-        {/* Quick Action Button: Nova Consulta */}
-        <button
-          onClick={onOpenNovaConsulta}
-          className={`w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold rounded-2xl flex items-center justify-center gap-2 shadow-lg backdrop-blur-sm transition-all duration-200 active:scale-[0.98] group ${
-            isCollapsed ? 'p-3' : 'py-3.5 px-4'
-          }`}
-          title="Nova Consulta"
-        >
-          <div className="w-7 h-7 rounded-full bg-slate-950 text-emerald-400 flex items-center justify-center shadow-md group-hover:scale-110 transition-transform shrink-0">
-            <Plus className="w-4 h-4 stroke-[3]" />
-          </div>
-          {!isCollapsed && <span className="text-sm font-bold tracking-wide">Nova Consulta</span>}
-        </button>
+        {/* Quick Action Button: Nova Consulta (Omitido no perfil Médico) */}
+        {!isDoctor && (
+          <button
+            onClick={onOpenNovaConsulta}
+            className={`w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold rounded-2xl flex items-center justify-center gap-2 shadow-lg backdrop-blur-sm transition-all duration-200 active:scale-[0.98] group ${
+              isCollapsed ? 'p-3' : 'py-3.5 px-4'
+            }`}
+            title="Nova Consulta"
+          >
+            <div className="w-7 h-7 rounded-full bg-slate-950 text-emerald-400 flex items-center justify-center shadow-md group-hover:scale-110 transition-transform shrink-0">
+              <Plus className="w-4 h-4 stroke-[3]" />
+            </div>
+            {!isCollapsed && <span className="text-sm font-bold tracking-wide">Nova Consulta</span>}
+          </button>
+        )}
 
         {/* Menu Navigation */}
         <nav className="flex flex-col gap-1 mt-1">

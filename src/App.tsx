@@ -309,12 +309,21 @@ export default function App() {
           )}
 
           {currentTab === 'especialidades' && (
-            <EspecialidadesView
-              onAgendarComMedico={handleAgendarComMedico}
-              doctors={doctors}
-              currentUser={currentUser}
-              onNavigateTab={setCurrentTab}
-            />
+            currentUser.role === 'medico' ? (
+              <AccessDeniedView
+                tabName="Especialidades & Corpo Clínico"
+                user={currentUser}
+                onNavigateTab={setCurrentTab}
+                onOpenSwitchUser={() => setIsLoginModalOpen(true)}
+              />
+            ) : (
+              <EspecialidadesView
+                onAgendarComMedico={handleAgendarComMedico}
+                doctors={doctors}
+                currentUser={currentUser}
+                onNavigateTab={setCurrentTab}
+              />
+            )
           )}
 
           {/* DOCTOR/ADMIN TAB: Pacientes */}
