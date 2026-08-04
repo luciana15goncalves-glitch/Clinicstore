@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { DashboardView } from './components/DashboardView';
@@ -18,6 +18,7 @@ import { AuditLogsModal } from './components/AuditLogsModal';
 import { TelemedicinaModal } from './components/TelemedicinaModal';
 import { PixPaymentModal } from './components/PixPaymentModal';
 import { SessionTimeoutModal } from './components/SessionTimeoutModal';
+import { OnboardingTour } from './components/OnboardingTour';
 
 import {
   MOCK_USER_ACCOUNTS,
@@ -55,7 +56,20 @@ export default function App() {
   const [isPixModalOpen, setIsPixModalOpen] = useState<boolean>(false);
   const [pixApt, setPixApt] = useState<Appointment | null>(null);
   const [isSessionTimeoutOpen, setIsSessionTimeoutOpen] = useState<boolean>(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState<boolean>(false);
   const [currentUnit, setCurrentUnit] = useState<string>('Unidade 1 - Centro Paulista');
+
+  // Keyboard Shortcut Handler (Ctrl+K or Cmd+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsOnboardingOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Authenticated User State (Defaults to Dr. Fernando Silva)
   const [currentUser, setCurrentUser] = useState<UserAccount>(MOCK_USER_ACCOUNTS[0]);
@@ -249,6 +263,7 @@ export default function App() {
         clinicLogo={clinicLogo}
         clinicTheme={clinicTheme}
         systemName={systemName}
+        onOpenOnboardingTour={() => setIsOnboardingOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -509,6 +524,14 @@ export default function App() {
         onLogout={() => {
           setIsSessionTimeoutOpen(false);
           setIsLoginModalOpen(true);
+        }}
+      />
+
+      <OnboardingTour
+        isOpen={isOnboardingOpen}
+        onClose={() => setIsOnboardingOpen(false)}
+        onNavigateTab={(tab) => {
+          setCurrentTab(tab);
         }}
       />
     </div>

@@ -17,6 +17,7 @@ import {
   Building2,
   LifeBuoy,
   CreditCard,
+  Sparkles,
 } from 'lucide-react';
 import { UserAccount } from '../types';
 
@@ -35,6 +36,7 @@ interface SidebarProps {
   clinicLogo?: string;
   clinicTheme?: ClinicTheme;
   systemName?: string;
+  onOpenOnboardingTour?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -46,6 +48,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   clinicLogo,
   clinicTheme = { primaryColor: '#00A896', secondaryColor: '#00B4D8', gradientName: 'Padrão' },
   systemName = 'CLINIC MEDICAL',
+  onOpenOnboardingTour,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const isDoctor = currentUser.role === 'medico';
@@ -254,6 +257,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span className="text-[10px] uppercase tracking-wider font-extrabold text-emerald-200/80 px-3 mb-1">
               Sistema
             </span>
+          )}
+          {onOpenOnboardingTour && (
+            <button
+              onClick={onOpenOnboardingTour}
+              title={isCollapsed ? 'Tour Guia do Sistema' : undefined}
+              className={`flex items-center gap-3 rounded-xl font-bold text-sm transition-all ${
+                isCollapsed ? 'p-3 justify-center' : 'px-3.5 py-2'
+              } text-amber-300 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/30`}
+            >
+              <Sparkles className="w-5 h-5 shrink-0 text-amber-300 animate-pulse" />
+              {!isCollapsed && <span>Tour & Guia Interativo</span>}
+            </button>
           )}
           <button
             onClick={() => setCurrentTab('configuracoes')}

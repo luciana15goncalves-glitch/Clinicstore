@@ -122,9 +122,14 @@ export const Header: React.FC<HeaderProps> = ({
                 setShowSearchResults(true);
               }}
               onFocus={() => setShowSearchResults(true)}
-              placeholder="Busca global paciente, CPF..."
-              className="w-full bg-slate-100 text-slate-800 placeholder-slate-400 text-xs font-medium rounded-xl pl-10 pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-[#00A896] transition-all border border-transparent"
+              placeholder="Busca global paciente, CPF (Ctrl+K)..."
+              className="w-full bg-slate-100 text-slate-800 placeholder-slate-400 text-xs font-medium rounded-xl pl-10 pr-14 py-2 focus:outline-none focus:ring-2 focus:ring-[#00A896] transition-all border border-transparent"
             />
+            {!searchTerm && (
+              <kbd className="absolute right-2.5 px-1.5 py-0.5 text-[10px] font-bold text-slate-400 bg-slate-200/70 rounded border border-slate-300 pointer-events-none hidden sm:inline-block">
+                Ctrl K
+              </kbd>
+            )}
             {searchTerm && (
               <button
                 onClick={() => {
