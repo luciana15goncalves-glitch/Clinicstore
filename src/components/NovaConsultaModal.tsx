@@ -47,6 +47,9 @@ export const NovaConsultaModal: React.FC<NovaConsultaModalProps> = ({
   const [newConvenio, setNewConvenio] = useState<string>('Unimed');
   const [newConsentimento, setNewConsentimento] = useState<boolean>(true);
 
+  // Wizard Step State for Nova Consulta Flow
+  const [wizardStep, setWizardStep] = useState<number>(1);
+
   const selectedPatient = patients.find((p) => p.id === Number(selectedPatientId));
   const selectedDoctor = doctorList.find((d) => d.id === Number(selectedDoctorId)) || doctorList[0];
 
@@ -287,203 +290,321 @@ export const NovaConsultaModal: React.FC<NovaConsultaModalProps> = ({
             </div>
           </form>
         ) : (
-          /* FORMULARIO DE CONSULTA */
+          /* FORMULARIO DE CONSULTA EM ETAPAS (WIZARD) */
           <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
-            {/* Patient Select */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Selecione o Paciente *
-                </label>
+            {/* Step Wizard Progress Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              {[
+                { step: 1, label: 'Paciente' },
+                { step: 2, label: 'Médico' },
+                { step: 3, label: 'Horário' },
+                { step: 4, label: 'Confirmar' },
+              ].map((s) => (
                 <button
+                  key={s.step}
                   type="button"
-                  onClick={() => setIsCreatingPatient(true)}
-                  className="text-xs font-bold text-[#00A896] hover:underline flex items-center gap-1 bg-teal-50 dark:bg-teal-950/40 px-2.5 py-1 rounded-lg border border-teal-200/60"
+                  onClick={() => setWizardStep(s.step)}
+                  className={`flex items-center gap-1.5 text-xs font-bold transition-all ${
+                    wizardStep === s.step
+                      ? 'text-[#00A896]'
+                      : wizardStep > s.step
+                      ? 'text-emerald-600'
+                      : 'text-slate-400'
+                  }`}
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>+ Novo Paciente</span>
-                </button>
-              </div>
-              <select
-                value={selectedPatientId}
-                onChange={(e) => setSelectedPatientId(Number(e.target.value))}
-                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00A896]"
-              >
-                {patients.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nome} — CPF: {p.cpf}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Specialist / Doctor Select */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
-                <Stethoscope className="w-3.5 h-3.5 text-[#00A896]" />
-                <span>Selecione o Especialista / Médico *</span>
-              </label>
-              <select
-                value={selectedDoctorId}
-                onChange={(e) => {
-                  const docId = Number(e.target.value);
-                  setSelectedDoctorId(docId);
-                  const doc = doctorList.find((d) => d.id === docId);
-                  if (doc && formaPagamento === 'particular') {
-                    setValor(doc.valorConsulta);
-                  }
-                }}
-                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00A896]"
-              >
-                {doctorList.map((doc) => (
-                  <option key={doc.id} value={doc.id}>
-                    {doc.nome} — {doc.especialidade} ({doc.crm})
-                  </option>
-                ))}
-              </select>
-              {selectedDoctor && (
-                <div className="mt-1.5 px-3 py-2 bg-teal-50/70 dark:bg-teal-950/40 border border-teal-200/60 dark:border-teal-800/60 rounded-xl flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-[#00A896] dark:text-teal-400">{selectedDoctor.especialidade}</span>
-                    <span className="text-slate-300 dark:text-slate-700">•</span>
-                    <span className="text-slate-500 dark:text-slate-400">{selectedDoctor.consultorio}</span>
-                  </div>
-                  <span className="font-semibold text-slate-700 dark:text-slate-200">
-                    R$ {selectedDoctor.valorConsulta}
+                  <span
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] ${
+                      wizardStep === s.step
+                        ? 'bg-[#00A896] text-white shadow-md'
+                        : wizardStep > s.step
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
+                        : 'bg-slate-100 text-slate-500 dark:bg-slate-800'
+                    }`}
+                  >
+                    {s.step}
                   </span>
+                  <span className="hidden sm:inline">{s.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Step 1: Patient Select */}
+            {wizardStep === 1 && (
+              <div className="space-y-4 animate-fade-in">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Etapa 1: Selecione o Paciente *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setIsCreatingPatient(true)}
+                      className="text-xs font-bold text-[#00A896] hover:underline flex items-center gap-1 bg-teal-50 dark:bg-teal-950/40 px-2.5 py-1 rounded-lg border border-teal-200/60"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Cadastrar Paciente</span>
+                    </button>
+                  </div>
+                  <select
+                    value={selectedPatientId}
+                    onChange={(e) => setSelectedPatientId(Number(e.target.value))}
+                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00A896]"
+                  >
+                    {patients.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nome} — CPF: {p.cpf}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              )}
-            </div>
 
-            {/* Date & Time Grid */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Data do Atendimento
-                </label>
-                <input
-                  type="date"
-                  value={data}
-                  onChange={(e) => setData(e.target.value)}
-                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00A896]"
-                  required
-                />
+                {selectedPatient && (
+                  <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs space-y-1">
+                    <p className="font-bold text-slate-800 dark:text-slate-200">Paciente Selecionado:</p>
+                    <p className="text-slate-600 dark:text-slate-400">{selectedPatient.nome} • {selectedPatient.telefone}</p>
+                    <p className="text-[10px] text-teal-600 font-semibold">Consentimento LGPD Verificado 🟢</p>
+                  </div>
+                )}
+                
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setWizardStep(2)}
+                    className="px-5 py-2.5 rounded-xl bg-[#00A896] text-white text-xs font-bold hover:bg-[#009282]"
+                  >
+                    Próximo: Escolher Médico ➔
+                  </button>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Horário
-                </label>
-                <input
-                  type="time"
-                  value={horario}
-                  onChange={(e) => setHorario(e.target.value)}
-                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00A896]"
-                  required
-                />
-              </div>
-            </div>
+            )}
 
-            {/* Type & Payment Mode */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Tipo de Consulta
-                </label>
-                <select
-                  value={tipo}
-                  onChange={(e) => setTipo(e.target.value as AppointmentType)}
-                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00A896]"
-                >
-                  <option value="Primeira Consulta">Primeira Consulta</option>
-                  <option value="Retorno">Retorno</option>
-                  <option value="Urgência">Urgência</option>
-                  <option value="Teleconsulta">Teleconsulta</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Modalidade de Pagamento
-                </label>
-                <select
-                  value={formaPagamento}
-                  onChange={(e) => setFormaPagamento(e.target.value as PaymentType)}
-                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00A896]"
-                >
-                  <option value="particular">Particular</option>
-                  <option value="convenio">Convênio Médico</option>
-                </select>
-              </div>
-            </div>
+            {/* Step 2: Doctor Select */}
+            {wizardStep === 2 && (
+              <div className="space-y-4 animate-fade-in">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                    <Stethoscope className="w-3.5 h-3.5 text-[#00A896]" />
+                    <span>Etapa 2: Especialista / Médico Responsável *</span>
+                  </label>
+                  <select
+                    value={selectedDoctorId}
+                    onChange={(e) => {
+                      const docId = Number(e.target.value);
+                      setSelectedDoctorId(docId);
+                      const doc = doctorList.find((d) => d.id === docId);
+                      if (doc && formaPagamento === 'particular') {
+                        setValor(doc.valorConsulta);
+                      }
+                    }}
+                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00A896]"
+                  >
+                    {doctorList.map((doc) => (
+                      <option key={doc.id} value={doc.id}>
+                        {doc.nome} — {doc.especialidade} ({doc.crm})
+                      </option>
+                    ))}
+                  </select>
+                  {selectedDoctor && (
+                    <div className="mt-2 px-3 py-2.5 bg-teal-50/70 dark:bg-teal-950/40 border border-teal-200/60 dark:border-teal-800/60 rounded-xl flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-[#00A896] dark:text-teal-400">{selectedDoctor.especialidade}</span>
+                        <span className="text-slate-300 dark:text-slate-700">•</span>
+                        <span className="text-slate-500 dark:text-slate-400">{selectedDoctor.consultorio}</span>
+                      </div>
+                      <span className="font-bold text-slate-700 dark:text-slate-200">
+                        R$ {selectedDoctor.valorConsulta}
+                      </span>
+                    </div>
+                  )}
+                </div>
 
-            {/* Convenio Name (if applicable) & Price */}
-            <div className="grid grid-cols-2 gap-3">
-              {formaPagamento === 'convenio' ? (
+                <div className="flex justify-between pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setWizardStep(1)}
+                    className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold"
+                  >
+                    ← Voltar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWizardStep(3)}
+                    className="px-5 py-2.5 rounded-xl bg-[#00A896] text-white text-xs font-bold hover:bg-[#009282]"
+                  >
+                    Próximo: Data e Horário ➔
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Date, Time & Payment */}
+            {wizardStep === 3 && (
+              <div className="space-y-4 animate-fade-in">
+                {/* Date & Time Grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Data do Atendimento
+                    </label>
+                    <input
+                      type="date"
+                      value={data}
+                      onChange={(e) => setData(e.target.value)}
+                      className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00A896]"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Horário
+                    </label>
+                    <input
+                      type="time"
+                      value={horario}
+                      onChange={(e) => setHorario(e.target.value)}
+                      className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00A896]"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Type & Payment Mode */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Tipo de Consulta
+                    </label>
+                    <select
+                      value={tipo}
+                      onChange={(e) => setTipo(e.target.value as AppointmentType)}
+                      className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00A896]"
+                    >
+                      <option value="Primeira Consulta">Primeira Consulta</option>
+                      <option value="Retorno">Retorno</option>
+                      <option value="Urgência">Urgência</option>
+                      <option value="Teleconsulta">Teleconsulta</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Modalidade de Pagamento
+                    </label>
+                    <select
+                      value={formaPagamento}
+                      onChange={(e) => setFormaPagamento(e.target.value as PaymentType)}
+                      className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00A896]"
+                    >
+                      <option value="particular">Particular</option>
+                      <option value="convenio">Convênio Médico</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Convenio Name (if applicable) & Price */}
+                <div className="grid grid-cols-2 gap-3">
+                  {formaPagamento === 'convenio' ? (
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                        Nome do Convênio
+                      </label>
+                      <input
+                        type="text"
+                        value={convenioNome}
+                        onChange={(e) => setConvenioNome(e.target.value)}
+                        placeholder="Ex: Unimed, Bradesco"
+                        className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00A896]"
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                        Valor (R$)
+                      </label>
+                      <input
+                        type="number"
+                        value={valor}
+                        onChange={(e) => setValor(Number(e.target.value))}
+                        className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00A896]"
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Duração Prevista
+                    </label>
+                    <div className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm text-slate-600 dark:text-slate-300 font-medium">
+                      30 minutos
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-between pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setWizardStep(2)}
+                    className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold"
+                  >
+                    ← Voltar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWizardStep(4)}
+                    className="px-5 py-2.5 rounded-xl bg-[#00A896] text-white text-xs font-bold hover:bg-[#009282]"
+                  >
+                    Próximo: Revisar & Confirmar ➔
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Summary & Confirm */}
+            {wizardStep === 4 && (
+              <div className="space-y-4 animate-fade-in">
+                <div className="bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/80 p-4 rounded-2xl text-xs space-y-2">
+                  <h4 className="font-extrabold text-[#00A896] text-sm flex items-center gap-1.5">
+                    <Check className="w-4 h-4" /> Resumo do Agendamento
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2 text-slate-700 dark:text-slate-300 pt-1">
+                    <p><strong>Paciente:</strong> {selectedPatient?.nome}</p>
+                    <p><strong>Médico:</strong> {selectedDoctor?.nome}</p>
+                    <p><strong>Especialidade:</strong> {selectedDoctor?.especialidade}</p>
+                    <p><strong>Data & Horário:</strong> {data} às {horario}</p>
+                    <p><strong>Tipo:</strong> {tipo}</p>
+                    <p><strong>Valor:</strong> R$ {valor.toFixed(2)} ({formaPagamento})</p>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Nome do Convênio
+                    Observações / Motivo
                   </label>
-                  <input
-                    type="text"
-                    value={convenioNome}
-                    onChange={(e) => setConvenioNome(e.target.value)}
-                    placeholder="Ex: Unimed, Bradesco"
-                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00A896]"
+                  <textarea
+                    rows={2}
+                    value={observacoes}
+                    onChange={(e) => setObservacoes(e.target.value)}
+                    placeholder="Ex: Retorno de exames..."
+                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00A896]"
                   />
                 </div>
-              ) : (
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Valor (R$)
-                  </label>
-                  <input
-                    type="number"
-                    value={valor}
-                    onChange={(e) => setValor(Number(e.target.value))}
-                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00A896]"
-                  />
-                </div>
-              )}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Duração Prevista
-                </label>
-                <div className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm text-slate-600 dark:text-slate-300 font-medium">
-                  30 minutos
+
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setWizardStep(3)}
+                    className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-100"
+                  >
+                    ← Voltar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 rounded-xl bg-[#00A896] hover:bg-[#009282] text-white text-xs font-extrabold shadow-md flex items-center gap-1.5 transition-all active:scale-95"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>Finalizar e Agendar Consulta</span>
+                  </button>
                 </div>
               </div>
-            </div>
-
-            {/* Observações */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Observações Médicas / Motivo
-              </label>
-              <textarea
-                rows={2}
-                value={observacoes}
-                onChange={(e) => setObservacoes(e.target.value)}
-                placeholder="Ex: Retorno de exames, dor torácica, checkup..."
-                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00A896]"
-              />
-            </div>
-
-            {/* Modal Buttons */}
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                className="px-5 py-2.5 rounded-xl bg-[#00A896] hover:bg-[#009282] text-white text-xs font-bold shadow-md flex items-center gap-1.5 transition-all active:scale-95"
-              >
-                <Check className="w-4 h-4" />
-                <span>Confirmar Agendamento</span>
-              </button>
-            </div>
+            )}
           </form>
         )}
       </div>

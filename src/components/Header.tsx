@@ -13,6 +13,13 @@ import {
   UserCheck,
   Building2,
   Stethoscope,
+  ShieldCheck,
+  Lock,
+  Wifi,
+  Activity,
+  Smartphone,
+  Eye,
+  RefreshCw,
 } from 'lucide-react';
 import { INITIAL_PATIENTS } from '../data/mockData';
 import { Patient, UserAccount } from '../types';
@@ -22,6 +29,9 @@ interface HeaderProps {
   onOpenAgenda: () => void;
   currentUser: UserAccount;
   onOpenSwitchUser?: () => void;
+  currentUnit?: string;
+  onChangeUnit?: (unit: string) => void;
+  onOpenAuditLogs?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -29,13 +39,24 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAgenda,
   currentUser,
   onOpenSwitchUser,
+  currentUnit = 'Unidade 1 - Centro Paulista',
+  onChangeUnit,
+  onOpenAuditLogs,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showUnitMenu, setShowUnitMenu] = useState(false);
+  const [showSecurityDetails, setShowSecurityDetails] = useState(false);
 
   const isDoctor = currentUser.role === 'medico';
+
+  const units = [
+    'Unidade 1 - Centro Paulista',
+    'Unidade 2 - Jardins / Oscar Freire',
+    'Unidade 3 - Alphaville Premium',
+  ];
 
   const filteredPatients = searchTerm.trim()
     ? INITIAL_PATIENTS.filter(
@@ -47,75 +68,153 @@ export const Header: React.FC<HeaderProps> = ({
     : [];
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200/80 px-6 flex items-center justify-between shrink-0 shadow-sm relative z-30">
-      {/* Search Input Bar */}
-      <div className="relative w-80 lg:w-96">
-        <div className="relative flex items-center">
-          <Search className="w-4 h-4 absolute left-3.5 text-slate-400 pointer-events-none" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setShowSearchResults(true);
-            }}
-            onFocus={() => setShowSearchResults(true)}
-            placeholder="Buscar paciente, CPF..."
-            className="w-full bg-slate-100 text-slate-800 placeholder-slate-400 text-sm rounded-xl pl-10 pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all border border-transparent focus:border-transparent"
-          />
-          {searchTerm && (
-            <button
-              onClick={() => {
-                setSearchTerm('');
-                setShowSearchResults(false);
-              }}
-              className="absolute right-2.5 text-slate-400 hover:text-slate-600"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+    <header className="h-16 bg-white border-b border-slate-200/80 px-4 lg:px-6 flex items-center justify-between shrink-0 shadow-sm relative z-30">
+      {/* Left: Multi-Tenant Unit Selector & Global Search */}
+      <div className="flex items-center gap-3">
+        {/* Multi-Tenant Unit Dropdown */}
+        <div className="relative hidden md:block">
+          <button
+            onClick={() => setShowUnitMenu(!showUnitMenu)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-all border border-slate-200"
+          >
+            <Building2 className="w-4 h-4 text-[#00A896]" />
+            <span className="truncate max-w-[160px]">{currentUnit}</span>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+          </button>
 
-        {/* Live Search Dropdown */}
-        {showSearchResults && searchTerm.trim().length > 0 && (
-          <div className="absolute left-0 right-0 top-12 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden z-50">
-            <div className="p-2 border-b border-slate-100 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-              Pacientes Encontrados ({filteredPatients.length})
-            </div>
-            {filteredPatients.length > 0 ? (
-              <div className="max-h-60 overflow-y-auto divide-y divide-slate-100">
-                {filteredPatients.map((p) => (
+          {showUnitMenu && (
+            <div className="absolute left-0 top-11 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2">
+              <p className="text-[10px] font-bold text-slate-400 uppercase px-2 py-1">
+                Selecione a Unidade / Filial (Multi-Tenant)
+              </p>
+              <div className="space-y-1 mt-1">
+                {units.map((unit) => (
                   <button
-                    key={p.id}
+                    key={unit}
                     onClick={() => {
-                      onSelectPatient(p);
-                      setShowSearchResults(false);
-                      setSearchTerm('');
+                      if (onChangeUnit) onChangeUnit(unit);
+                      setShowUnitMenu(false);
                     }}
-                    className="w-full text-left p-3 hover:bg-emerald-50 flex items-center gap-3 transition-colors group"
+                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                      unit === currentUnit
+                        ? 'bg-teal-50 text-[#00A896] border border-teal-200'
+                        : 'text-slate-700 hover:bg-slate-50'
+                    }`}
                   >
-                    <img
-                      src={p.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100'}
-                      alt={p.nome}
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-800 group-hover:text-emerald-600 truncate">
-                        {p.nome}
-                      </p>
-                      <p className="text-xs text-slate-400 truncate">
-                        CPF: {p.cpf} • {p.telefone}
-                      </p>
-                    </div>
+                    <Building2 className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">{unit}</span>
                   </button>
                 ))}
               </div>
-            ) : (
-              <div className="p-4 text-center text-sm text-slate-400">
-                Nenhum paciente localizado para "{searchTerm}"
-              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Global Search Input Bar */}
+        <div className="relative w-64 lg:w-80">
+          <div className="relative flex items-center">
+            <Search className="w-4 h-4 absolute left-3.5 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setShowSearchResults(true);
+              }}
+              onFocus={() => setShowSearchResults(true)}
+              placeholder="Busca global paciente, CPF..."
+              className="w-full bg-slate-100 text-slate-800 placeholder-slate-400 text-xs font-medium rounded-xl pl-10 pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-[#00A896] transition-all border border-transparent"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setShowSearchResults(false);
+                }}
+                className="absolute right-2.5 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
             )}
           </div>
+
+          {/* Live Search Dropdown */}
+          {showSearchResults && searchTerm.trim().length > 0 && (
+            <div className="absolute left-0 right-0 top-11 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden z-50">
+              <div className="p-2 bg-slate-50 border-b border-slate-100 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider flex justify-between items-center">
+                <span>Resultados ({filteredPatients.length})</span>
+                <span className="text-teal-600">LGPD Protegido</span>
+              </div>
+              {filteredPatients.length > 0 ? (
+                <div className="max-h-60 overflow-y-auto divide-y divide-slate-100">
+                  {filteredPatients.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => {
+                        onSelectPatient(p);
+                        setShowSearchResults(false);
+                        setSearchTerm('');
+                      }}
+                      className="w-full text-left p-3 hover:bg-teal-50 flex items-center gap-3 transition-colors group"
+                    >
+                      <img
+                        src={p.foto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100'}
+                        alt={p.nome}
+                        className="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-slate-800 group-hover:text-[#00A896] truncate">
+                          {p.nome}
+                        </p>
+                        <p className="text-[10px] text-slate-400 truncate">
+                          CPF: {p.cpf} • {p.telefone}
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-bold text-teal-700 bg-teal-50 px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        Abrir Prontuário ➔
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 text-center text-xs text-slate-400">
+                  Nenhum paciente localizado para "{searchTerm}"
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Center: Security, MFA, PWA & Performance Indicators */}
+      <div className="hidden xl:flex items-center gap-2">
+        <button
+          onClick={() => setShowSecurityDetails(!showSecurityDetails)}
+          className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200/80 text-[11px] font-bold hover:bg-emerald-100 transition-all"
+          title="Status de Criptografia, MFA e LGPD"
+        >
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+          <span>MFA Ativo • AES-256</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+        </button>
+
+        <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 text-slate-600 rounded-xl text-[11px] font-semibold">
+          <Activity className="w-3.5 h-3.5 text-teal-600" />
+          <span>12ms</span>
+          <span className="text-slate-300">•</span>
+          <Smartphone className="w-3.5 h-3.5 text-sky-600" />
+          <span className="text-sky-700 font-bold">PWA Ready</span>
+        </div>
+
+        {onOpenAuditLogs && (
+          <button
+            onClick={onOpenAuditLogs}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-[11px] font-bold hover:bg-slate-800 transition-all shadow-xs"
+            title="Ver Logs de Auditoria LGPD"
+          >
+            <Shield className="w-3.5 h-3.5 text-amber-400" />
+            <span>Logs LGPD</span>
+          </button>
         )}
       </div>
 
@@ -130,28 +229,15 @@ export const Header: React.FC<HeaderProps> = ({
           <CalendarIcon className="w-4 h-4" />
         </button>
 
-        {/* Message Bell Badge (11) */}
-        <div className="relative">
-          <button
-            onClick={() => setShowNotifications(!showNotifications)}
-            className="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-colors relative"
-          >
-            <Mail className="w-4 h-4" />
-            <span className="absolute -top-1 -right-1 bg-sky-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
-              11
-            </span>
-          </button>
-        </div>
-
-        {/* Notification Bell Badge (7) */}
+        {/* Message Bell Badge */}
         <div className="relative">
           <button
             onClick={() => setShowNotifications(!showNotifications)}
             className="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-colors relative"
           >
             <Bell className="w-4 h-4" />
-            <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
-              7
+            <span className="absolute -top-1 -right-1 bg-teal-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
+              3
             </span>
           </button>
 
@@ -159,24 +245,31 @@ export const Header: React.FC<HeaderProps> = ({
           {showNotifications && (
             <div className="absolute right-0 top-12 w-80 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden">
               <div className="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-                <span className="font-bold text-sm text-slate-800">
-                  Notificações & Alertas
+                <span className="font-bold text-xs text-slate-800">
+                  Notificações do Sistema & Alertas
                 </span>
-                <span className="text-xs bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded-full">
-                  7 Novas
+                <span className="text-[10px] bg-teal-100 text-teal-800 font-bold px-2 py-0.5 rounded-full">
+                  3 Novas
                 </span>
               </div>
               <div className="divide-y divide-slate-100 max-h-64 overflow-y-auto">
                 <div className="p-3 hover:bg-slate-50 text-xs">
                   <p className="font-semibold text-slate-800">
-                    📋 {isDoctor ? 'Prontuário Pendente' : 'Novo Agendamento na Recepção'}
+                    🔒 Sessão JWT Segura
                   </p>
                   <p className="text-slate-500 mt-0.5">
-                    {isDoctor
-                      ? '2 consultas finalizadas aguardando assinatura digital.'
-                      : 'Novo agendamento confirmado via WhatsApp.'}
+                    Autenticação MFA de dois fatores verificada com sucesso.
                   </p>
-                  <span className="text-[10px] text-slate-400 mt-1 inline-block">Há 15 min</span>
+                  <span className="text-[10px] text-slate-400 mt-1 inline-block">Agora</span>
+                </div>
+                <div className="p-3 hover:bg-slate-50 text-xs">
+                  <p className="font-semibold text-slate-800">
+                    📲 Confirmação WhatsApp
+                  </p>
+                  <p className="text-slate-500 mt-0.5">
+                    Paciente Maria Silva confirmou consulta de amanhã.
+                  </p>
+                  <span className="text-[10px] text-slate-400 mt-1 inline-block">Há 10 min</span>
                 </div>
               </div>
             </div>
@@ -193,7 +286,7 @@ export const Header: React.FC<HeaderProps> = ({
               src={currentUser.avatar}
               alt={currentUser.nome}
               className={`w-9 h-9 rounded-full object-cover ring-2 ${
-                isDoctor ? 'ring-emerald-500' : 'ring-sky-500'
+                isDoctor ? 'ring-teal-500' : 'ring-sky-500'
               }`}
             />
             <div className="text-left hidden sm:block">
@@ -204,11 +297,11 @@ export const Header: React.FC<HeaderProps> = ({
                 <span
                   className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded ${
                     isDoctor
-                      ? 'bg-emerald-100 text-emerald-800'
+                      ? 'bg-teal-100 text-teal-800'
                       : 'bg-sky-100 text-sky-800'
                   }`}
                 >
-                  {isDoctor ? 'MED' : 'REC'}
+                  {isDoctor ? 'MÉDICO' : 'RECEPÇÃO'}
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 leading-tight mt-0.5">
@@ -227,15 +320,14 @@ export const Header: React.FC<HeaderProps> = ({
                 </p>
                 <p className="text-xs text-slate-500">{currentUser.cargo}</p>
                 {currentUser.crm && (
-                  <p className="text-[11px] text-emerald-600 font-semibold mt-0.5">
-                    {currentUser.crm}
+                  <p className="text-[11px] text-teal-600 font-semibold mt-0.5">
+                    CRM: {currentUser.crm}
                   </p>
                 )}
-                {currentUser.turno && (
-                  <p className="text-[11px] text-sky-600 font-semibold mt-0.5">
-                    Turno: {currentUser.turno}
-                  </p>
-                )}
+                <div className="mt-2 pt-2 border-t border-slate-200/60 flex items-center justify-between text-[10px] text-slate-500">
+                  <span>Sessão JWT: Ativa</span>
+                  <span className="text-emerald-600 font-bold">MFA 🟢</span>
+                </div>
               </div>
               <div className="p-1.5 flex flex-col gap-0.5 text-xs">
                 {onOpenSwitchUser && (
@@ -244,10 +336,22 @@ export const Header: React.FC<HeaderProps> = ({
                       setShowProfileMenu(false);
                       onOpenSwitchUser();
                     }}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 font-bold transition-colors"
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-teal-700 bg-teal-50 hover:bg-teal-100 font-bold transition-colors"
                   >
-                    <UserCheck className="w-4 h-4 text-emerald-600" />
+                    <UserCheck className="w-4 h-4 text-teal-600" />
                     <span>Trocar Perfil / Entrar como Outro</span>
+                  </button>
+                )}
+                {onOpenAuditLogs && (
+                  <button
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      onOpenAuditLogs();
+                    }}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 font-medium transition-colors"
+                  >
+                    <Shield className="w-4 h-4 text-amber-500" />
+                    <span>Logs de Auditoria LGPD</span>
                   </button>
                 )}
                 <div className="my-1 border-t border-slate-100" />
@@ -256,10 +360,10 @@ export const Header: React.FC<HeaderProps> = ({
                     setShowProfileMenu(false);
                     if (onOpenSwitchUser) onOpenSwitchUser();
                   }}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-rose-600 hover:bg-rose-50 font-medium transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-rose-600 hover:bg-rose-50 font-bold transition-colors"
                 >
                   <LogOut className="w-4 h-4" />
-                  <span>Sair do Sistema</span>
+                  <span>Sair do Sistema (Logout)</span>
                 </button>
               </div>
             </div>
@@ -269,3 +373,4 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
+

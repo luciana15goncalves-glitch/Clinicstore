@@ -14,6 +14,10 @@ import { AssinaturaView } from './components/AssinaturaView';
 import { NovaConsultaModal } from './components/NovaConsultaModal';
 import { LoginModal } from './components/LoginModal';
 import { AccessDeniedView } from './components/AccessDeniedView';
+import { AuditLogsModal } from './components/AuditLogsModal';
+import { TelemedicinaModal } from './components/TelemedicinaModal';
+import { PixPaymentModal } from './components/PixPaymentModal';
+import { SessionTimeoutModal } from './components/SessionTimeoutModal';
 
 import {
   MOCK_USER_ACCOUNTS,
@@ -45,6 +49,13 @@ export default function App() {
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
   const [isNovaConsultaOpen, setIsNovaConsultaOpen] = useState<boolean>(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
+  const [isAuditLogsOpen, setIsAuditLogsOpen] = useState<boolean>(false);
+  const [isTelemedicinaOpen, setIsTelemedicinaOpen] = useState<boolean>(false);
+  const [telemedicinaApt, setTelemedicinaApt] = useState<Appointment | null>(null);
+  const [isPixModalOpen, setIsPixModalOpen] = useState<boolean>(false);
+  const [pixApt, setPixApt] = useState<Appointment | null>(null);
+  const [isSessionTimeoutOpen, setIsSessionTimeoutOpen] = useState<boolean>(false);
+  const [currentUnit, setCurrentUnit] = useState<string>('Unidade 1 - Centro Paulista');
 
   // Authenticated User State (Defaults to Dr. Fernando Silva)
   const [currentUser, setCurrentUser] = useState<UserAccount>(MOCK_USER_ACCOUNTS[0]);
@@ -246,9 +257,11 @@ export default function App() {
         <Header
           currentUser={currentUser}
           onOpenSwitchUser={() => setIsLoginModalOpen(true)}
+          currentUnit={currentUnit}
+          onChangeUnit={setCurrentUnit}
+          onOpenAuditLogs={() => setIsAuditLogsOpen(true)}
           onSelectPatient={(p) => {
             if (isDoctor || isAdmin) {
-              // Find or set appointment for this patient to open EHR in Prontuário directly
               const existingApt = appointments.find((a) => a.pacienteId === p.id);
               if (existingApt) {
                 setSelectedAptForEHR(existingApt);
@@ -458,6 +471,45 @@ export default function App() {
         onClose={() => setIsLoginModalOpen(false)}
         onLoginSuccess={handleSwitchUser}
         userAccounts={userAccounts}
+      />
+
+      <AuditLogsModal
+        isOpen={isAuditLogsOpen}
+        onClose={() => setIsAuditLogsOpen(false)}
+        auditLogs={auditLogs}
+      />
+
+      <TelemedicinaModal
+        isOpen={isTelemedicinaOpen}
+        onClose={() => setIsTelemedicinaOpen(false)}
+        appointment={telemedicinaApt}
+        patient={telemedicinaApt ? (patients.find((p) => p.id === telemedicinaApt.pacienteId) || null) : null}
+        onOpenProntuario={(apt) => {
+          setSelectedAptForEHR(apt);
+          setIsTelemedicinaOpen(false);
+          setCurrentTab('prontuario');
+        }}
+      />
+
+      <PixPaymentModal
+        isOpen={isPixModalOpen}
+        onClose={() => setIsPixModalOpen(false)}
+        appointment={pixApt}
+        patient={pixApt ? (patients.find((p) => p.id === pixApt.pacienteId) || null) : null}
+        onPaymentConfirmed={() => {
+          if (pixApt) {
+            handleUpdateAppointmentStatus(pixApt.id, 'confirmada');
+          }
+        }}
+      />
+
+      <SessionTimeoutModal
+        isOpen={isSessionTimeoutOpen}
+        onExtendSession={() => setIsSessionTimeoutOpen(false)}
+        onLogout={() => {
+          setIsSessionTimeoutOpen(false);
+          setIsLoginModalOpen(true);
+        }}
       />
     </div>
   );
